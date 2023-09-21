@@ -1,0 +1,59 @@
+name: Build & Publish Release APK
+
+on:
+  pull_request:
+    branches:
+      - main 
+  push:
+    branches:
+      - main
+      - master
+      - develop
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up JDK
+        uses: actions/setup-java@v1
+        with:
+          java-version: '11'
+
+      - name: Grant execute permission to Gradlew
+        run: chmod +x ./gradlew
+
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug
+
+      - name: Build Release APK
+        run: ./gradlew assembleRelease #--keystore=${{ secrets.KEYSTORE_BASE64 }} --storePassword=${{ secrets.KEYSTORE_PASSWORD }} --alias=${{ secrets.KEYSTORE_ALIAS }} --password=${{ secrets.KEYSTORE_KEY_PASSWORD }}
+
+      - name: Archive Debug APK
+        uses: actions/upload-artifact@v2
+        with:
+          name: debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+
+      - name: Archive Release APK
+        uses: actions/upload-artifact@v2
+        with:
+          name: release-apk
+          path: app/build/outputs/apk/release/*.apk  # Use '*.apk' if you're not using bundle
+
+      # - name: Get Git Tag Name
+      #   id: git_tag
+      #   run: echo ::set-output name=tag_name::v$(git rev-parse main)
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            app/build/outputs/apk/debug/*.apk
+            app/build/outputs/apk/release/*.apk
+          tag_name: v1.0.0
+          token: ${{ secrets.Token }}
+
